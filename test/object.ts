@@ -817,6 +817,43 @@ describe('Object types', () => {
     ).resolves.toEqual(false);
   });
 
+  it.each([false, true])(
+    'deepPartial() makes nested required objects optional (strict: %s)',
+    async (strict) => {
+      const schema = object({
+        profile: object({ name: string().required() })
+          .default(undefined)
+          .required(),
+        contacts: array(
+          object({
+            details: object({ age: number().required() })
+              .default(undefined)
+              .required(),
+          }),
+        ),
+      }).required('root is required');
+      const partial = schema.deepPartial();
+
+      await expect(partial.validate({}, { strict })).resolves.toEqual({});
+      await expect(
+        partial.validate({ contacts: [{}] }, { strict }),
+      ).resolves.toEqual({ contacts: [{}] });
+      await expect(
+        partial.validate(undefined, { strict: true }),
+      ).rejects.toThrow('root is required');
+      await expect(
+        partial.isValid({ profile: null }, { strict }),
+      ).resolves.toBe(false);
+      await expect(
+        partial.isValid(
+          { contacts: [{ details: { age: 'invalid' } }] },
+          { strict },
+        ),
+      ).resolves.toBe(false);
+      await expect(schema.isValid({}, { strict })).resolves.toBe(false);
+    },
+  );
+
   it('should alias or move keys', () => {
     let inst = object()
       .shape({

@@ -38,11 +38,7 @@ export type ObjectSchemaSpec = SchemaSpec<any> & {
 
 function deepPartial(schema: any) {
   if ('fields' in schema) {
-    const partial: any = {};
-    for (const [key, fieldSchema] of Object.entries(schema.fields)) {
-      partial[key] = deepPartial(fieldSchema);
-    }
-    return schema.setFields(partial);
+    return schema.deepPartial().optional();
   }
   if (schema.type === 'array') {
     const nextArray = schema.optional();
@@ -410,8 +406,11 @@ export default class ObjectSchema<
   }
 
   deepPartial(): ObjectSchema<PartialDeep<TIn>, TContext, TDefault, TFlags> {
-    const next = deepPartial(this);
-    return next;
+    const partial: any = {};
+    for (const [key, fieldSchema] of Object.entries(this.fields)) {
+      partial[key] = deepPartial(fieldSchema);
+    }
+    return this.setFields(partial);
   }
 
   pick<TKey extends keyof TIn>(keys: readonly TKey[]) {
